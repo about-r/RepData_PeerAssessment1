@@ -166,4 +166,6 @@ with(wd,plot(interval,steps,type='l',
     main='Weekday Average Steps per Interval',ylab='Average Steps',xlab='Interval'))
 ```
 
+## 9. URL to GitHub report
 
+[rep_proj_2.html] (http://htmlpreview.github.com/?https://github.com/about-r/RepData_PeerAssessment1/master/rep_proj_2.html)
