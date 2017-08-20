@@ -1,0 +1,169 @@
+---
+title: "Project2"
+author: "Serg C"
+date: "August 18, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Rep Course Project 2
+
+This project includes several parts. 
+
+## 1. Reading the dataset
+
+The dataset is downloaded and unzipped, and then `dt` data.frame is read from `activity.csv` file:
+
+```{r load.1, echo=FALSE}
+wdir <- '.'
+fZip <- paste(wdir,'activity.zip',sep="/")
+if(!file.exists("activity.csv")){
+ if(!file.exists(fZip)){
+  fUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+  download.file( fUrl, fZip )
+ }
+ if(!file.exists(paste(wdir,"activity.csv",sep="/"))){
+  unzip( fZip, exdir=wdir )
+ }
+}
+```
+```{r read}
+dt <- read.csv( paste( wdir,"activity.csv",sep="/") )
+```
+
+## 2. Histogram of the total number of steps taken each day
+
+Calculate the total number of steps taken per day, ignore NAs.
+
+```{r calc.2}
+tot <- tapply( dt$steps,dt$date, sum, na.rm=TRUE )
+```
+
+Make a histogram of the total number of steps taken each day
+
+```{r hist.2}
+hist( tot, main='Histogram of Total Steps per Day',xlab='Total Steps')
+```
+
+## 3. Mean and median number of steps taken each day
+
+Calculate and report the mean and median of the total number of steps taken per day.
+
+The report record is formatted as < date, median, mean, max >
+
+```{r calc.3}
+rep <- aggregate( steps~date, data=dt, function(x){summary(x, digits=2)})
+day <- data.frame( unclass(rep), check.names = FALSE, stringsAsFactors = FALSE)[,c(1,4,5,7)]
+names(day) <- c('date','median','mean','max')
+print(day,row.names=F)
+```
+
+## 4. Time series plot of the average number of steps taken
+
+Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).
+
+Calculate
+```{r calc.4}
+rep <- aggregate( steps~interval, data=dt, mean, na.rm=TRUE )
+```
+
+then plot
+```{r plot.4}
+with(rep,plot(interval,steps,type='l',
+    main='Daily Average Steps per Interval',ylab='Average Steps',xlab='Interval'))
+```
+
+## 5. The 5-minute interval that, on average, contains the maximum number of steps
+
+```{r which.5}
+int <- rep[which(rep$steps==max(rep$steps)),"interval"]
+```
+
+**Q:** Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+**A:** The interval that contains the maximum number of steps on average is ***`r int`***.
+```{r print.5, echo=FALSE}
+print(rep[which(rep$steps==max(rep$steps)),],row.names=F)
+```
+
+## 6. Code to describe and show a strategy for inputing missing data
+
+1. Calculate and report the total number of missing values in the dataset
+
+```{r calc.6}
+dt_na <- is.na(dt$steps)
+print( sum(dt_na), row.names=F )
+```
+
+2. My strategy to fill in NA's is replace NA Steps observation with the average of value of Steps claculated for the same interval in item 4.  Wewill merge the original `dt` and `rep` frames, then re-set NA's then make a new dataset.  
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r create.6}
+dt.new <- merge( dt, rep, by='interval' )
+dt.new[ is.na(dt.new[,2]), 2] <- dt.new[ is.na(dt.new[,2]), 4]
+dt.new <- dt.new[,c(2,3,1)]
+names(dt.new)<-c('steps','date','interval')
+```
+
+## 7. Histogram of the total number of steps taken each day after missing values are fixed
+
+Calculate the total number of steps taken per day.
+
+```{r calc.71}
+tot <- tapply( dt.new$steps, dt.new$date, sum )
+```
+
+Make a histogram of the total number of steps taken each day (fixed data frame)
+
+```{r hist.72}
+hist( tot, main='Histogram of Total Steps per Day',xlab='Total Steps')
+```
+
+Calculate and report the mean and median of the total number of steps taken per day.
+
+The report record is formatted as < date, median, mean, max >
+
+```{r calc.73}
+rep <- aggregate( steps~date, data=dt.new, function(x){summary(x, digits=2)})
+day <- data.frame( unclass(rep), check.names = FALSE, stringsAsFactors = FALSE)[,c(1,4,5,7)]
+names(day) <- c('date','median','mean','max')
+print(day,row.names=F)
+```
+
+**Q:** Do these values differ from the estimates from the first part of the assignment? 
+
+**A:** Yes
+
+
+**Q:** What is the impact of fixing missing data on the estimates of the total daily number of steps?
+
+**A:** The total daily number of steps has increased.
+
+## 8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+Modify`dt.new` data frame to add a new column, calculate df to plot
+
+```{r calc.8}
+dt.new$day <- ifelse(
+    weekdays(as.Date(dt.new$date,'%Y-%m-%d')) %in% c('Sunday','Saturday' ),
+    'weekend', 'weekday')
+wd <- aggregate( steps~interval, data=subset(dt.new, day=='weekday'), mean )
+we <- aggregate( steps~interval, data=subset(dt.new, day=='weekend'), mean )
+```
+
+Make a panel plot
+
+```{r plot.8}
+par(mfrow = c(2, 1))
+with(we,plot(interval,steps,type='l',
+    main='Weekend Average Steps per Interval',ylab='Average Steps',xlab='Interval'))
+
+with(wd,plot(interval,steps,type='l',
+    main='Weekday Average Steps per Interval',ylab='Average Steps',xlab='Interval'))
+```
+
+
